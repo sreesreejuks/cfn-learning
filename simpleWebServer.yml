@@ -24,22 +24,32 @@ Parameters:
     Default: 0.0.0.0/0
     AllowedPattern: '^(\d{1,3}\.){3}\d{1,3}\/\d{1,2}$'
     ConstraintDescription: must be a valid IP CIDR range of the form x.x.x.x/x.
+  
+  Message:
+    Description: "Message for HTML page"
+    Default: "Cats are the best"
+    Type: "String"
 
 Resources:
   WebServerSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: Allow HTTP access via my IP address
+      GroupDescription: Enable SSH and HTTP access via port 22 IPv4 & port 80 IPv4
       SecurityGroupIngress:
-        - IpProtocol: tcp
+        - Description: 'Allow HTTP IPv4 IN'
+          IpProtocol: tcp
           FromPort: '80'
           ToPort: '80'
           CidrIp: !Ref MyIP
-        - IpProtocol: tcp
+        - Description: 'Allow SSH IPv4 IN'
+          IpProtocol: tcp
           FromPort: '22'
           ToPort: '22'
           CidrIp: !Ref MyIP          
-
+      Tags:
+        - Key: Name
+          Value: WebServerTestSG
+          
   WebServer:
     Type: AWS::EC2::Instance
     Properties:
@@ -47,13 +57,17 @@ Resources:
       InstanceType: !Ref InstanceType
       SecurityGroupIds:
         - !Ref WebServerSecurityGroup
-      UserData: !Base64 |
-        #!/bin/bash
-        yum update -y
-        yum install -y httpd
-        systemctl start httpd
-        systemctl enable httpd
-        echo "<html><body><h1>Hello World!</h1></body></html>" > /var/www/html/index.html
+      Tags:
+        - Key: Name
+          Value: WebServerTest
+      UserData: 
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          yum update -y
+          yum install -y httpd
+          systemctl start httpd
+          systemctl enable httpd
+          echo "<html><head><title>Hello World!</title></head><body><h1><center>${Message}</center></h1></body></html>" > /var/www/html/index.html
 
 Outputs:
   WebsiteURL:
