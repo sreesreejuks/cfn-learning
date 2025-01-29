@@ -1,0 +1,178 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "CloudFormation template to create a VPC with public and private subnets."
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          Default: "VPC Configuration"
+        Parameters:
+          - VPCName
+          - CIDRRange
+      - Label:
+          Default: "Subnet Configuration"
+        Parameters:
+          - PublicSubnetCidrWebA
+          - PublicSubnetCidrWebB
+          - PublicSubnetCidrWebC
+          - PrivateSubnetCidrAppA
+          - PrivateSubnetCidrAppB
+          - PrivateSubnetCidrAppC
+        
+    ParameterLabels:
+      VPCName: 
+        default: "VPC Name"
+      CIDRRange:
+        default: "VPC CIDR Range"
+      PublicSubnetCidrWebA:
+        default: "CIDR for Web (Public) Subnet A"
+      PublicSubnetCidrWebB:
+        default: "CIDR for Web (Public) Subnet B"  
+      PublicSubnetCidrWebC:
+        default: "CIDR for Web (Public) Subnet C"        
+      PrivateSubnetCidrAppA:
+        default: "CIDR for App (Private) Subnet A"
+      PrivateSubnetCidrAppB:
+        default: "CIDR for App (Private) Subnet B"
+      PrivateSubnetCidrAppC:
+        default: "CIDR for App (Private) Subnet C"
+
+Parameters:
+  VPCName:
+    Type: String
+    Default: MyAWSVPC
+    Description: "Name of the VPC."
+
+  CIDRRange:
+    Description: "The CIDR block to use for the VPC (e.g., 10.0.0.0/16)."
+    Type: String
+    Default: "10.0.0.0/16"
+    AllowedPattern: "(^([0-9]{1,3}\\.){3}[0-9]{1,3}(/([8-9]|[1-2][0-9]|3[0-2]))$)"
+    ConstraintDescription: "Please provide a valid CIDR block in the format x.x.x.x/x (e.g., 10.0.0.0/16)."
+
+  PublicSubnetCidrWebA:
+    Description: "CIDR block for the Public Web Subnet in Availability Zone A"
+    Type: String
+    Default: "10.0.1.0/24"
+    AllowedPattern: "(^([0-9]{1,3}\\.){3}[0-9]{1,3}(/([8-9]|[1-2][0-9]|3[0-2]))$)"
+    ConstraintDescription: "Must be a valid CIDR block (e.g., 10.0.1.0/24)."
+
+  PublicSubnetCidrWebB:
+    Description: "CIDR block for the Public Web Subnet in Availability Zone B"
+    Type: String
+    Default: "10.0.2.0/24"
+    AllowedPattern: "(^([0-9]{1,3}\\.){3}[0-9]{1,3}(/([8-9]|[1-2][0-9]|3[0-2]))$)"
+    ConstraintDescription: "Must be a valid CIDR block (e.g., 10.0.2.0/24)."
+  
+  PublicSubnetCidrWebC:
+    Description: "CIDR block for the Public Web Subnet in Availability Zone C"
+    Type: String
+    Default: "10.0.3.0/24"
+    AllowedPattern: "(^([0-9]{1,3}\\.){3}[0-9]{1,3}(/([8-9]|[1-2][0-9]|3[0-2]))$)"
+    ConstraintDescription: "Must be a valid CIDR block (e.g., 10.0.3.0/24)."        
+  
+  PrivateSubnetCidrAppA:
+    Description: "CIDR block for the Private App Subnet in Availability Zone A"
+    Type: String
+    Default: "10.0.4.0/24"
+    AllowedPattern: "(^([0-9]{1,3}\\.){3}[0-9]{1,3}(/([8-9]|[1-2][0-9]|3[0-2]))$)"
+    ConstraintDescription: "Must be a valid CIDR block (e.g., 10.0.4.0/24)."
+
+  PrivateSubnetCidrAppB:
+    Description: "CIDR block for the Private App Subnet in Availability Zone B"
+    Type: String
+    Default: "10.0.5.0/24"
+    AllowedPattern: "(^([0-9]{1,3}\\.){3}[0-9]{1,3}(/([8-9]|[1-2][0-9]|3[0-2]))$)"
+    ConstraintDescription: "Must be a valid CIDR block (e.g., 10.0.5.0/24)."    
+
+  PrivateSubnetCidrAppC:
+    Description: "CIDR block for the Private App Subnet in Availability Zone C"
+    Type: String
+    Default: "10.0.6.0/24"
+    AllowedPattern: "(^([0-9]{1,3}\\.){3}[0-9]{1,3}(/([8-9]|[1-2][0-9]|3[0-2]))$)"
+    ConstraintDescription: "Must be a valid CIDR block (e.g., 10.0.6.0/24)."
+
+Resources:
+  MyVPC:
+    Type: "AWS::EC2::VPC"
+    Properties:
+      CidrBlock: !Ref CIDRRange
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: "Name"
+          Value: !Ref VPCName
+  
+  ipv6CidrBlock:
+    Type: AWS::EC2::VPCCidrBlock
+    Properties:
+      VpcId: !Ref MyVPC
+      AmazonProvidedIpv6CidrBlock: true
+
+  SnWebA:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      VpcId: !Ref MyVPC
+      CidrBlock: !Ref PublicSubnetCidrWebA 
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      Tags:
+        - Key: "Name"      
+          Value: !Sub "${VPCName}-Sn-Web-A"
+  SnWebB:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      VpcId: !Ref MyVPC
+      CidrBlock: !Ref PublicSubnetCidrWebB 
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Select [1, !GetAZs ""]
+      Tags:
+        - Key: "Name"      
+          Value: !Sub "${VPCName}-Sn-Web-B"
+  SnWebC:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      VpcId: !Ref MyVPC
+      CidrBlock: !Ref PublicSubnetCidrWebC 
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Select [2, !GetAZs ""]
+      Tags:
+        - Key: "Name"      
+          Value: !Sub "${VPCName}-Sn-Web-C"
+
+  SnAppA: 
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      VpcId: !Ref MyVPC
+      CidrBlock: !Ref PrivateSubnetCidrAppA
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      Tags:
+        - Key: "Name"
+          Value: !Sub "${VPCName}-Sn-App-A"
+
+  SnAppB: 
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      VpcId: !Ref MyVPC
+      CidrBlock: !Ref PrivateSubnetCidrAppB
+      AvailabilityZone: !Select [1, !GetAZs ""]
+      Tags:
+        - Key: "Name"
+          Value: !Sub "${VPCName}-Sn-App-B"
+
+  SnAppC: 
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      VpcId: !Ref MyVPC
+      CidrBlock: !Ref PrivateSubnetCidrAppC
+      AvailabilityZone: !Select [2, !GetAZs ""]
+      Tags:
+        - Key: "Name"
+          Value: !Sub "${VPCName}-Sn-App-C"
+
+Outputs:
+  VPCID:
+    Description: "ID of the created VPC"
+    Value: !Ref MyVPC
+    Export:
+      Name: !Sub "${AWS::StackName}-VPCID"
