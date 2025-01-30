@@ -1,9 +1,5 @@
 ## Project: CloudFormation template to create a VPC with public and private subnets.
 
-# cfn-learning
-
-This repository contains CloudFormation templates for learning purposes.
-
 ## Repository Structure
 
 
