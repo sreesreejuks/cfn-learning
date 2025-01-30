@@ -1,0 +1,130 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >-
+  CloudFormation template to create an EC2 instance with Jenkins and Docker,
+  using parameters.
+
+Parameters:
+  InstanceType:
+    Type: String
+    Description: EC2 instance type
+    Default: t2.micro
+    AllowedValues:
+      - t2.micro
+      - t3.micro
+      - t3.small
+
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: Name of an existing EC2 KeyPair to enable SSH access to the instance
+    ConstraintDescription: Must be the name of an existing EC2 KeyPair
+
+  LatestAmiId:
+    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
+    Description: AMI ID for the EC2 instance, using the latest Amazon Linux 2
+    Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
+
+Resources:
+  EC2Instance:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: !Ref LatestAmiId
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyName
+      Tags:
+        - Key: Name
+          Value: jenkins-srv
+      SecurityGroupIds:
+        - !Ref InstanceSecurityGroup
+      IamInstanceProfile: !Ref EC2InstanceProfile
+      UserData:
+        Fn::Base64:
+          !Sub |
+            #!/bin/bash
+            yum update -y
+
+            amazon-linux-extras install -y docker
+            systemctl enable docker
+            systemctl start docker
+            usermod -aG docker ec2-user
+
+            # Install Java for Jenkins
+            yum install java-17-amazon-corretto -y
+
+            # install git & curl
+            yum install git -y
+            yum install curl -y
+
+            # Add Jenkins repo and install
+            wget -O /etc/yum.repos.d/jenkins.repo https://pkg.jenkins.io/redhat-stable/jenkins.repo
+            rpm --import https://pkg.jenkins.io/redhat-stable/jenkins.io-2023.key
+
+            # Clean yum cache to ensure fresh metadata download
+            yum clean all
+            
+            # Install Jenkins using yum
+            yum install -y jenkins
+
+            # Explicitly enable and start Jenkins after installation
+            systemctl enable jenkins
+            systemctl start jenkins
+            
+             # Add the jenkins user to docker group
+            usermod -aG docker jenkins
+
+            docker --version
+            git --version
+
+            echo "Jenkins and Docker installation complete!"
+
+            echo " Password: sudo cat /var/lib/jenkins/secrets/initialAdminPassword"
+
+  InstanceSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: Allow Jenkins (8080) and SSH (22) and HTTP (80) and HTTPS (443) access
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 8080
+          ToPort: 8080
+          CidrIp: 0.0.0.0/0
+
+  EC2Role:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore'
+
+  EC2InstanceProfile:
+    Type: 'AWS::IAM::InstanceProfile'
+    Properties:
+      Path: '/'
+      Roles:
+        - !Ref EC2Role
+
+Outputs:
+  InstancePublicIp:
+    Description: Public IP of the newly created EC2 instance.
+    Value: !GetAtt EC2Instance.PublicIp
+  JenkinsUrl:
+    Description: URL to access Jenkins
+    Value: !Sub 'http://${EC2Instance.PublicIp}:8080'
