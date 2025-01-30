@@ -73,7 +73,7 @@ To deploy this project run
 
 ## Lessons Learned
 
-What did you learn while building this project? What challenges did you face and how did you overcome them?
+What did I learn while building this project? What challenges did I face and how did I overcome them?
 
     "This project significantly improved my practical knowledge of CloudFormation. 
     I became more comfortable with the various sections of a template, handling parameters, 
