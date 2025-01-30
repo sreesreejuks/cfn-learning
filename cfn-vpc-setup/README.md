@@ -3,6 +3,7 @@
 
 This repository contains CloudFormation templates for learning purposes.
 
+## "CloudFormation template to create a VPC with public and private subnets."
 
 ## Repository Structure
 
